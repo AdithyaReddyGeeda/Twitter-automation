@@ -6,21 +6,24 @@ A Python project that automates a Twitter (X) account by **analyzing your existi
 
 - **Tweet fetching**: X API v2 (Tweepy) to fetch up to ~3200 timeline tweets with pagination and rate-limit handling
 - **Storage**: SQLite database (or path of your choice) for fetched tweets
-- **Style analysis**: OpenAI GPT analyzes tweets and produces a reusable "style profile" (topics, tone, length, emojis, hashtags, language)
-- **Tweet generation**: New tweets from the style profile on a given topic or auto-suggested
+- **Style analysis**: AI (OpenAI or Claude) analyzes tweets and produces a reusable "style profile" (topics, tone, length, emojis, hashtags, language)
+- **Tweet generation**: New tweets from the style profile on a given topic or auto-suggested (OpenAI or Claude)
 - **Posting**: Post generated tweets; optional scheduling with APScheduler
 - **Engagement**: Reply to mentions (placeholder), like/retweet by keywords
 - **Safety**: Random delays, rate-limit handling, dry-run mode; API keys via `.env`
 
 ## Project structure
 
+When you clone this repo, files are at the **repo root** (e.g. `Twitter-automation/`):
+
 ```
-twitter_style_automator/
 ├── twitter_style_automator.py   # Main CLI entry point
 ├── tweet_fetcher.py             # X API v2 fetch + SQLite
-├── style_analyzer.py            # OpenAI style analysis → profile
-├── tweet_generator.py           # OpenAI tweet generation from profile
+├── style_analyzer.py            # AI style analysis → profile
+├── tweet_generator.py           # AI tweet generation from profile
 ├── poster.py                    # Posting, scheduling, like/retweet
+├── content_guard.py             # Safety check + blocklist before posting
+├── ai_client.py                 # Unified OpenAI / Claude client
 ├── config.py                    # Loads .env and paths
 ├── requirements.txt
 ├── .env.example
@@ -34,7 +37,7 @@ twitter_style_automator/
 ### 1. Python environment
 
 ```bash
-cd twitter_style_automator
+# Clone the repo, then from the repo root (e.g. Twitter-automation):
 python3 -m venv venv
 source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
@@ -80,7 +83,7 @@ Edit `.env`:
 - `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_TOKEN_SECRET`, `X_BEARER_TOKEN`
 - `AI_PROVIDER=anthropic` or `openai`; then the matching key: `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`
 - `X_HANDLE=mcisaul_` (no `@`)
-- Optional: `MIN_DELAY_SEC`, `MAX_DELAY_SEC` for random delays (defaults 30–120 s)
+- Optional: `MIN_DELAY_SEC`, `MAX_DELAY_SEC` (defaults 30–120 s); `MAX_POSTS_PER_DAY` (default 5); `ENABLE_SAFETY_CHECK=true`; `BLOCKLIST=word1,word2`
 
 Never commit `.env` or share these keys.
 
@@ -88,9 +91,9 @@ Never commit `.env` or share these keys.
 
 Test the full flow **without posting** anything to X. Use `--dry-run` wherever posting is involved.
 
-**1. Activate venv and go to project folder**
+**1. Activate venv and go to project folder (repo root)**
 ```bash
-cd twitter_style_automator
+cd Twitter-automation   # or your clone path
 source venv/bin/activate   # Windows: venv\Scripts\activate
 ```
 
@@ -307,7 +310,7 @@ To have the **scheduler** run continuously (posting every N hours without relyin
 The automator is designed to run **without any input from you**. To keep posting careful and on-brand, it uses:
 
 1. **Daily cap** – `MAX_POSTS_PER_DAY` (default 5). No more than that many posts per calendar day.
-2. **AI safety check** – Before each post, an OpenAI call scores the tweet (1–5) for: on-brand, appropriate, no hate/misinformation. Only tweets that pass (score ≥ 4) are posted. Set `ENABLE_SAFETY_CHECK=false` in `.env` to disable.
+2. **AI safety check** – Before each post, an AI call (OpenAI or Claude) scores the tweet (1–5) for: on-brand, appropriate, no hate/misinformation. Only tweets that pass (score ≥ 4) are posted. Set `ENABLE_SAFETY_CHECK=false` in `.env` to disable.
 3. **Blocklist** – In `.env`, set `BLOCKLIST=word1,word2,phrase` (comma-separated). Any tweet containing one of these (case-insensitive) is rejected.
 4. **Similarity check** – If a generated tweet is too similar to one of your recent timeline tweets (from the DB), it is skipped to avoid repetition.
 5. **Post log** – Every post (and dry-run) is appended to `posted_tweets.log` (timestamp, tweet id, text) so you can review what was posted.
@@ -324,7 +327,8 @@ You can run `post-tweet` or `schedule-posts` and walk away; the bot will only po
 ## Dependencies
 
 - **tweepy** – X API v2 (and v1.1 where used)
-- **openai** – Style analysis and tweet generation
+- **openai** – Style analysis and tweet generation (when `AI_PROVIDER=openai`)
+- **anthropic** – Claude support (when `AI_PROVIDER=anthropic`)
 - **apscheduler** – Scheduled posting
 - **python-dotenv** – Load `.env`
 
@@ -332,4 +336,4 @@ SQLite is in the standard library.
 
 ## License
 
-Use and modify as you like; ensure compliance with X’s and OpenAI’s terms of use.
+Use and modify as you like; ensure compliance with X’s, OpenAI’s, and Anthropic’s terms of use.
