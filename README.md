@@ -6,8 +6,8 @@ A Python project that automates a Twitter (X) account by **analyzing your existi
 
 - **Tweet fetching**: X API v2 (Tweepy) to fetch up to ~3200 timeline tweets with pagination and rate-limit handling
 - **Storage**: SQLite database (or path of your choice) for fetched tweets
-- **Style analysis**: AI (OpenAI or Claude) analyzes tweets and produces a reusable "style profile" (topics, tone, length, emojis, hashtags, language)
-- **Tweet generation**: New tweets from the style profile on a given topic or auto-suggested (OpenAI or Claude)
+- **Style analysis**: AI (OpenAI, Claude, or Ollama) analyzes tweets and produces a reusable "style profile" (topics, tone, length, emojis, hashtags, language)
+- **Tweet generation**: New tweets from the style profile (OpenAI, Claude, or local Ollama)
 - **Posting**: Post generated tweets; optional scheduling with APScheduler
 - **Engagement**: Reply to mentions (placeholder), like/retweet by keywords
 - **Safety**: Random delays, rate-limit handling, dry-run mode; API keys via `.env`
@@ -55,20 +55,23 @@ You need **Elevated** access to read user timelines (including your own).
    - **Bearer Token** (for timeline reads with v2)
 4. Ensure your app has **Read and Write** permissions.
 
-### 3. AI API key (OpenAI or Claude)
+### 3. AI: OpenAI, Claude, or Ollama (local)
 
-You can use **Claude** (Anthropic) or **OpenAI** for style analysis, tweet generation, and safety checks.
+You can use **Ollama** (local, no API key), **Claude**, or **OpenAI** for style analysis, tweet generation, and safety checks.
 
-**Option A – Claude (no OpenAI key needed)**  
+**Option A – Ollama (local, free, no key)**  
+1. Install [Ollama](https://ollama.com) and start it: `ollama serve`.  
+2. Pull a model: `ollama pull llama3.2` (or `mistral`, `llama3.1`, etc.).  
+3. In `.env` set: `AI_PROVIDER=ollama`, and optionally `OLLAMA_MODEL=llama3.2`, `OLLAMA_BASE_URL=http://localhost:11434`.  
+No API key needed; everything runs on your machine.
+
+**Option B – Claude**  
 1. Go to [Anthropic Console](https://console.anthropic.com/) and create an API key.  
-2. In `.env` set: `AI_PROVIDER=anthropic` and `ANTHROPIC_API_KEY=your_key`.  
-3. Leave `OPENAI_API_KEY` empty if you’re not using OpenAI.
+2. In `.env` set: `AI_PROVIDER=anthropic` and `ANTHROPIC_API_KEY=your_key`.
 
-**Option B – OpenAI**  
+**Option C – OpenAI**  
 1. Go to [OpenAI API Keys](https://platform.openai.com/api-keys) and create a key.  
 2. In `.env` set: `AI_PROVIDER=openai` and `OPENAI_API_KEY=your_key`.
-
-Default is `AI_PROVIDER=anthropic` if you don’t set it.
 
 ### 4. Environment variables
 
@@ -81,7 +84,7 @@ cp .env.example .env
 Edit `.env`:
 
 - `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_TOKEN_SECRET`, `X_BEARER_TOKEN`
-- `AI_PROVIDER=anthropic` or `openai`; then the matching key: `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`
+- `AI_PROVIDER=ollama` (local), `anthropic`, or `openai`; for non-Ollama set the matching key: `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`. For Ollama: `OLLAMA_MODEL=llama3.2`, `OLLAMA_BASE_URL=http://localhost:11434`
 - `X_HANDLE=mcisaul_` (no `@`)
 - Optional: `MIN_DELAY_SEC`, `MAX_DELAY_SEC` (defaults 30–120 s); `MAX_POSTS_PER_DAY` (default 5); `ENABLE_SAFETY_CHECK=true`; `BLOCKLIST=word1,word2`
 
@@ -103,7 +106,7 @@ python twitter_style_automator.py fetch-tweets --max-tweets 100
 ```
 If you hit rate limits, wait and retry or use a smaller `--max-tweets`.
 
-**3. Build the style profile** (needs `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` in `.env`, and `AI_PROVIDER=anthropic` or `openai`).
+**3. Build the style profile** (needs `AI_PROVIDER` set and, if not using Ollama, the matching API key).
 ```bash
 python twitter_style_automator.py analyze-style --max-tweets 100
 ```
@@ -310,7 +313,7 @@ To have the **scheduler** run continuously (posting every N hours without relyin
 The automator is designed to run **without any input from you**. To keep posting careful and on-brand, it uses:
 
 1. **Daily cap** – `MAX_POSTS_PER_DAY` (default 5). No more than that many posts per calendar day.
-2. **AI safety check** – Before each post, an AI call (OpenAI or Claude) scores the tweet (1–5) for: on-brand, appropriate, no hate/misinformation. Only tweets that pass (score ≥ 4) are posted. Set `ENABLE_SAFETY_CHECK=false` in `.env` to disable.
+2. **AI safety check** – Before each post, an AI call (OpenAI, Claude, or Ollama) scores the tweet (1–5) for: on-brand, appropriate, no hate/misinformation. Only tweets that pass (score ≥ 4) are posted. Set `ENABLE_SAFETY_CHECK=false` in `.env` to disable.
 3. **Blocklist** – In `.env`, set `BLOCKLIST=word1,word2,phrase` (comma-separated). Any tweet containing one of these (case-insensitive) is rejected.
 4. **Similarity check** – If a generated tweet is too similar to one of your recent timeline tweets (from the DB), it is skipped to avoid repetition.
 5. **Post log** – Every post (and dry-run) is appended to `posted_tweets.log` (timestamp, tweet id, text) so you can review what was posted.
@@ -327,8 +330,9 @@ You can run `post-tweet` or `schedule-posts` and walk away; the bot will only po
 ## Dependencies
 
 - **tweepy** – X API v2 (and v1.1 where used)
-- **openai** – Style analysis and tweet generation (when `AI_PROVIDER=openai`)
-- **anthropic** – Claude support (when `AI_PROVIDER=anthropic`)
+- **openai** – When `AI_PROVIDER=openai`
+- **anthropic** – When `AI_PROVIDER=anthropic`
+- **requests** – Used for Ollama HTTP calls (when `AI_PROVIDER=ollama`); no extra key needed
 - **apscheduler** – Scheduled posting
 - **python-dotenv** – Load `.env`
 

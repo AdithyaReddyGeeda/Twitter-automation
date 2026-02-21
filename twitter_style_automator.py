@@ -301,23 +301,27 @@ def main() -> int:
     p_gen.add_argument("--extra", type=str, help="Extra instructions for generation")
     p_gen.set_defaults(run=cmd_generate_tweet)
 
+    # Subparsers need a parent with --dry-run so "post-tweet --dry-run" works (argparse parses rest with subparser)
+    _dry_run_parent = argparse.ArgumentParser(add_help=False)
+    _dry_run_parent.add_argument("--dry-run", action="store_true", help="Do not post; only generate and log")
+
     # post-tweet
-    p_post = subparsers.add_parser("post-tweet", help="Generate, safety-check, and post one tweet (no prompt)")
+    p_post = subparsers.add_parser("post-tweet", parents=[_dry_run_parent], help="Generate, safety-check, and post one tweet (no prompt)")
     p_post.add_argument("--topic", "-t", type=str, help="Topic for the tweet")
     p_post.set_defaults(run=cmd_post_tweet)
 
     # schedule-posts
-    p_sched = subparsers.add_parser("schedule-posts", help="Run scheduler to post on interval (fully automatic)")
+    p_sched = subparsers.add_parser("schedule-posts", parents=[_dry_run_parent], help="Run scheduler to post on interval (fully automatic)")
     p_sched.add_argument("--interval-hours", type=float, default=24)
     p_sched.add_argument("--topic", "-t", type=str, help="Default topic for scheduled tweets")
     p_sched.set_defaults(run=cmd_schedule_posts)
 
     # reply-mentions
-    p_mentions = subparsers.add_parser("reply-mentions", help="Fetch and log mentions")
+    p_mentions = subparsers.add_parser("reply-mentions", parents=[_dry_run_parent], help="Fetch and log mentions")
     p_mentions.set_defaults(run=cmd_reply_mentions)
 
     # like-retweet
-    p_rt = subparsers.add_parser("like-retweet", help="Like/retweet by keywords")
+    p_rt = subparsers.add_parser("like-retweet", parents=[_dry_run_parent], help="Like/retweet by keywords")
     p_rt.add_argument("--keywords", "-k", nargs="+", required=True, help="Keywords to search")
     p_rt.add_argument("--count", type=int, default=5)
     p_rt.set_defaults(run=cmd_like_retweet)

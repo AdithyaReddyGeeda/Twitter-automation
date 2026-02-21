@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from ai_client import chat
-from config import STYLE_PROFILE_PATH
+from config import STYLE_PROFILE_PATH, X_HANDLE
 from tweet_fetcher import get_all_tweets_from_db
 
 logger = logging.getLogger(__name__)
@@ -108,8 +108,30 @@ def analyze_style(
     return profile
 
 
+def get_default_style_profile() -> Dict[str, Any]:
+    """Return a minimal style profile when no analyzed profile exists (e.g. before fetch/analyze)."""
+    handle = X_HANDLE or "user"
+    return {
+        "handle": handle,
+        "topics": ["tech", "productivity", "ideas"],
+        "tone": "casual and friendly",
+        "avg_length_words": 25,
+        "length_range": [15, 40],
+        "emoji_usage": "light, occasional",
+        "hashtag_style": "optional, 0-2 per tweet",
+        "language_patterns": "conversational",
+        "posting_style": "single tweets",
+        "prompt_template": (
+            f"Write a single tweet in the style of @{handle}. "
+            "Topics often include: tech, productivity, ideas. Tone: casual and friendly. "
+            "Length around 25 words. Output only the tweet text, no quotes or explanation."
+        ),
+        "analyzed_count": 0,
+    }
+
+
 def load_style_profile(profile_path: Optional[Path] = None) -> Dict[str, Any]:
-    """Load style profile from JSON file."""
+    """Load style profile from JSON file. Raises FileNotFoundError if missing."""
     path = profile_path or STYLE_PROFILE_PATH
     path = Path(path)
     if not path.exists():

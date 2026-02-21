@@ -25,13 +25,16 @@ X_ACCESS_TOKEN = get_env("X_ACCESS_TOKEN")
 X_ACCESS_TOKEN_SECRET = get_env("X_ACCESS_TOKEN_SECRET")
 X_BEARER_TOKEN = get_env("X_BEARER_TOKEN")
 
-# AI provider: "openai" or "anthropic" (Claude)
+# AI provider: "openai", "anthropic" (Claude), or "ollama" (local)
 AI_PROVIDER = get_env("AI_PROVIDER", "anthropic").lower()
-if AI_PROVIDER not in ("openai", "anthropic"):
+if AI_PROVIDER not in ("openai", "anthropic", "ollama"):
     AI_PROVIDER = "anthropic"
 OPENAI_API_KEY = get_env("OPENAI_API_KEY")
 ANTHROPIC_API_KEY = get_env("ANTHROPIC_API_KEY")
 ANTHROPIC_MODEL = get_env("ANTHROPIC_MODEL", "claude-3-5-haiku-20241022")
+# Ollama (local): no API key needed
+OLLAMA_BASE_URL = get_env("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL = get_env("OLLAMA_MODEL", "llama3.2")
 
 # Target handle (without @)
 X_HANDLE = get_env("X_HANDLE", "mcisaul_").lstrip("@")
