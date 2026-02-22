@@ -55,3 +55,13 @@ ENABLE_SAFETY_CHECK = get_env("ENABLE_SAFETY_CHECK", "true").lower() in ("true",
 BLOCKLIST = [w.strip().lower() for w in get_env("BLOCKLIST", "").split(",") if w.strip()]
 POST_LOG_PATH = PROJECT_DIR / "posted_tweets.log"
 POST_COUNT_FILE = PROJECT_DIR / "post_count_date.txt"
+
+# Media (images and videos) for tweets
+ENABLE_IMAGE = get_env("ENABLE_IMAGE", "false").lower() in ("true", "1", "yes")
+IMAGE_SOURCE = get_env("IMAGE_SOURCE", "ai").lower()  # "ai" | "folder" | "twitter"
+IMAGE_FOLDER_PATH = get_env("IMAGE_FOLDER_PATH", "")
+ENABLE_VIDEO = get_env("ENABLE_VIDEO", "false").lower() in ("true", "1", "yes")
+VIDEO_SOURCE = get_env("VIDEO_SOURCE", "folder").lower()  # "folder" | "twitter"
+VIDEO_FOLDER_PATH = get_env("VIDEO_FOLDER_PATH", "")
+# For AI image generation (OpenAI DALL·E); uses OPENAI_API_KEY
+OPENAI_IMAGE_MODEL = get_env("OPENAI_IMAGE_MODEL", "dall-e-3")

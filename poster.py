@@ -28,6 +28,7 @@ from config import (
     X_HANDLE,
 )
 from tweet_generator import generate_tweet
+from media_helper import get_and_upload_media
 
 logger = logging.getLogger(__name__)
 
@@ -77,19 +78,26 @@ def get_tweepy_client_v2() -> tweepy.Client:
 def post_tweet(
     text: str,
     dry_run: bool = False,
+    media_ids: Optional[List[str]] = None,
 ) -> Optional[str]:
     """
-    Post a tweet as the authenticated user. Returns tweet id if successful.
+    Post a tweet as the authenticated user. Optionally attach media (image/video).
+    Returns tweet id if successful.
     """
     if not text or len(text) > 280:
         logger.warning("Invalid tweet length: %s", len(text))
         return None
     if dry_run:
         logger.info("[DRY RUN] Would post: %s", text[:80])
+        if media_ids:
+            logger.info("[DRY RUN] With %s media attachment(s)", len(media_ids))
         return "dry_run_id"
     try:
         client = get_tweepy_client_v2()
-        response = client.create_tweet(text=text)
+        kwargs = {"text": text}
+        if media_ids:
+            kwargs["media_ids"] = [int(m) for m in media_ids]
+        response = client.create_tweet(**kwargs)
         if response and response.data and response.data.get("id"):
             tid = response.data["id"]
             logger.info("Posted tweet id %s", tid)
@@ -97,7 +105,7 @@ def post_tweet(
     except tweepy.TooManyRequests:
         logger.warning("Rate limited; waiting %s sec", RATE_LIMIT_WAIT)
         time.sleep(RATE_LIMIT_WAIT)
-        return post_tweet(text, dry_run=False)
+        return post_tweet(text, dry_run=False, media_ids=media_ids)
     except tweepy.TweepyException as e:
         logger.error("Post failed: %s", e)
         return None
@@ -189,9 +197,13 @@ def post_generated_tweet(
 
     if dry_run:
         _log_post(text, dry_run=True)
-        return post_tweet(text, dry_run=True)
+        api = get_tweepy_api()
+        media_ids = get_and_upload_media(api, text, topic, dry_run=True)
+        return post_tweet(text, dry_run=True, media_ids=media_ids or None)
 
-    tid = post_tweet(text, dry_run=False)
+    api = get_tweepy_api()
+    media_ids = get_and_upload_media(api, text, topic, dry_run=False)
+    tid = post_tweet(text, dry_run=False, media_ids=media_ids or None)
     if tid:
         _increment_today_post_count()
         _log_post(text, tweet_id=tid, dry_run=False)

@@ -8,7 +8,8 @@ A Python project that automates a Twitter (X) account by **analyzing your existi
 - **Storage**: SQLite database (or path of your choice) for fetched tweets
 - **Style analysis**: AI (OpenAI, Claude, or Ollama) analyzes tweets and produces a reusable "style profile" (topics, tone, length, emojis, hashtags, language)
 - **Tweet generation**: New tweets from the style profile (OpenAI, Claude, or local Ollama)
-- **Posting**: Post generated tweets; optional scheduling with APScheduler
+- **Posting**: Post generated tweets with optional **images and videos**; optional scheduling with APScheduler
+- **Media**: Attach **relevant** image (AI-generated with DALL·E or picked from your folder) and/or video (picked from folder); AI picks the best match for each tweet
 - **Engagement**: Reply to mentions (placeholder), like/retweet by keywords
 - **Safety**: Random delays, rate-limit handling, dry-run mode; API keys via `.env`
 
@@ -22,6 +23,8 @@ When you clone this repo, files are at the **repo root** (e.g. `Twitter-automati
 ├── style_analyzer.py            # AI style analysis → profile
 ├── tweet_generator.py           # AI tweet generation from profile
 ├── poster.py                    # Posting, scheduling, like/retweet
+├── media_helper.py              # Relevant image/video (AI, folder, or Twitter) + upload
+├── twitter_media_search.py      # Search X for media, download, pick with AI
 ├── content_guard.py             # Safety check + blocklist before posting
 ├── ai_client.py                 # Unified OpenAI / Claude client
 ├── config.py                    # Loads .env and paths
@@ -87,8 +90,25 @@ Edit `.env`:
 - `AI_PROVIDER=ollama` (local), `anthropic`, or `openai`; for non-Ollama set the matching key: `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`. For Ollama: `OLLAMA_MODEL=llama3.2`, `OLLAMA_BASE_URL=http://localhost:11434`
 - `X_HANDLE=mcisaul_` (no `@`)
 - Optional: `MIN_DELAY_SEC`, `MAX_DELAY_SEC` (defaults 30–120 s); `MAX_POSTS_PER_DAY` (default 5); `ENABLE_SAFETY_CHECK=true`; `BLOCKLIST=word1,word2`
+- **Media**: `ENABLE_IMAGE=true`, `IMAGE_SOURCE=ai` or `folder`, `IMAGE_FOLDER_PATH=/path`; `ENABLE_VIDEO=true`, `VIDEO_FOLDER_PATH=/path`. For AI images (DALL·E) you need `OPENAI_API_KEY`.
 
 Never commit `.env` or share these keys.
+
+### 5. Media (optional): images and videos
+
+To attach **relevant** image and/or video to each tweet:
+
+- **Images** (`ENABLE_IMAGE=true`)
+  - **`IMAGE_SOURCE=twitter`** (recommended): Search X for recent public tweets with images matching your tweet/topic, pick the most relevant with AI, download and attach. Uses `X_BEARER_TOKEN`. No DALL·E or folder needed.
+  - **`IMAGE_SOURCE=ai`**: Generate with OpenAI DALL·E. Requires `OPENAI_API_KEY`.
+  - **`IMAGE_SOURCE=folder`**: Pick from `IMAGE_FOLDER_PATH` using AI.
+- **Videos** (`ENABLE_VIDEO=true`)
+  - **`VIDEO_SOURCE=twitter`**: Search X for recent public tweets with video matching your tweet/topic, pick the most relevant with AI, download and attach. Uses `X_BEARER_TOKEN`.
+  - **`VIDEO_SOURCE=folder`**: Pick from `VIDEO_FOLDER_PATH` using AI. Supported: `.mp4`, `.mov`, `.m4v`, `.webm`.
+
+Twitter allows **one video OR up to 4 images** per tweet. The bot attaches at most one video or one image per tweet. Media is uploaded via X API v1.1 and attached to the v2 tweet.
+
+**Reusing media from X:** When using `IMAGE_SOURCE=twitter` or `VIDEO_SOURCE=twitter`, the bot finds public media via the X API and reuses it. You are responsible for respecting copyright and X’s Terms of Service; consider using only when you have rights or the content is clearly licensed for reuse.
 
 ## Testing (dry-run, no real posts)
 
